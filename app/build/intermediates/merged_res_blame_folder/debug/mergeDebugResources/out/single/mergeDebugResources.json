@@ -1,0 +1,14 @@
+[
+    {
+        "merged": "com.alarmrock.app-debug-84:/xml_backup_rules.xml.flat",
+        "source": "com.alarmrock.app-main-86:/xml/backup_rules.xml"
+    },
+    {
+        "merged": "com.alarmrock.app-debug-84:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "com.alarmrock.app-main-86:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.alarmrock.app-debug-84:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.alarmrock.app-main-86:/mipmap-anydpi-v26/ic_launcher.xml"
+    }
+]

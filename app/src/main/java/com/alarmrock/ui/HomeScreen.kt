@@ -39,6 +39,7 @@ fun HomeScreen(
     onChallengeSelect: () -> Unit
 ) {
     val alarms by viewModel.alarms.collectAsState()
+    val operationError by viewModel.operationError.collectAsState()
 
     Scaffold(
         floatingActionButton = {
@@ -77,6 +78,16 @@ fun HomeScreen(
                     Text("Next wake-up", style = MaterialTheme.typography.labelLarge)
                     Text("${alarms.firstOrNull()?.hour ?: 7}:${String.format("%02d", alarms.firstOrNull()?.minute ?: 0)}", style = MaterialTheme.typography.displaySmall)
                     Text("${alarms.size} alarms configured")
+                }
+            }
+
+            operationError?.let { message ->
+                Card(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+                    Text(
+                        text = message,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(16.dp)
+                    )
                 }
             }
 

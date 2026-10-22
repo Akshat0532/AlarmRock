@@ -8,11 +8,22 @@ import android.os.Build
 import com.alarmrock.data.AlarmEntity
 import java.util.Calendar
 
-class AlarmScheduler(private val context: Context) {
+interface AlarmScheduling {
+    fun scheduleAlarm(alarm: AlarmEntity)
+    fun cancelAlarm(alarmId: Long)
+}
+
+class AlarmScheduler(private val context: Context) : AlarmScheduling {
     private val alarmManager: AlarmManager =
         context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-    fun scheduleAlarm(alarm: AlarmEntity) {
+    override fun scheduleAlarm(alarm: AlarmEntity) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            !alarmManager.canScheduleExactAlarms()
+        ) {
+            throw SecurityException("Exact alarm permission is not granted")
+        }
+
         val triggerAt = getNextOccurrence(alarm)
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             action = "com.alarmrock.ALARM_TRIGGER"
@@ -32,7 +43,7 @@ class AlarmScheduler(private val context: Context) {
         }
     }
 
-    fun cancelAlarm(alarmId: Long) {
+    override fun cancelAlarm(alarmId: Long) {
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             action = "com.alarmrock.ALARM_TRIGGER"
         }
@@ -46,32 +57,35 @@ class AlarmScheduler(private val context: Context) {
     }
 
     fun getNextOccurrence(alarm: AlarmEntity): Long {
-        val now = Calendar.getInstance()
-        val target = Calendar.getInstance().apply {
+        return AlarmOccurrenceCalculator.nextOccurrence(alarm)
+    }
+}
+
+internal object AlarmOccurrenceCalculator {
+    fun nextOccurrence(alarm: AlarmEntity, now: Calendar = Calendar.getInstance()): Long {
+        val target = (now.clone() as Calendar).apply {
             set(Calendar.HOUR_OF_DAY, alarm.hour)
             set(Calendar.MINUTE, alarm.minute)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
         }
         if (!alarm.repeatDays.isNullOrBlank()) {
-            val days = alarm.repeatDays.split(',').map { it.trim() }.filter { it.isNotEmpty() }
+            val days = alarm.repeatDays
+                .split(',')
+                .map { it.trim().uppercase() }
+                .filter { it in setOf("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT") }
             if (days.isNotEmpty()) {
                 var next = target.clone() as Calendar
                 val list = listOf("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT")
-                var found = false
-                while (!found) {
+                repeat(7) {
                     val currentDay = list[next.get(Calendar.DAY_OF_WEEK) - 1]
                     if (currentDay in days) {
                         if (next.timeInMillis > now.timeInMillis) {
-                            found = true
-                        } else {
-                            next.add(Calendar.DAY_OF_YEAR, 1)
+                            return next.timeInMillis
                         }
-                    } else {
-                        next.add(Calendar.DAY_OF_YEAR, 1)
                     }
+                    next.add(Calendar.DAY_OF_YEAR, 1)
                 }
-                return next.timeInMillis
             }
         }
 
